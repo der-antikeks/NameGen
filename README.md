@@ -4,4 +4,4 @@ A simple random Name-Generator for Go
 
 ***
 
-__!!! currently not working !!!__
+__Works somehow... but generates ugly names__

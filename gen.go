@@ -2,8 +2,9 @@
 package namegen
 
 import (
-	"fmt"
 	"strings"
+
+	"github.com/der-antikeks/namegen/rand"
 )
 
 // The rune that is used to separate names.
@@ -11,79 +12,38 @@ const StopChar = rune(32)
 
 // A NameGen creates random names.
 type NameGen struct {
-	dict	map[rune]map[float64]rune	// [previous char][probability]next char
-	length	map[float64]int				// [probability]length
+	dict	map[rune]map[rune]int	// [previous char][next char]amount
+	length	map[int]int				// [length]amount
 }
 
 // NewNameGen returns a new NameGen and calculates the probabilities of consecutive characters based on the passed string slice.
 func NewNameGen(raw []string) *NameGen {
 	n := new(NameGen)
 
-	tmplength := make(map[int]int)
-	tmpdict := make(map[rune]map[rune]int)
-	prev := StopChar
+	n.length = make(map[int]int)
+	n.dict = make(map[rune]map[rune]int)
 
+	prev := StopChar
 	for _, name := range raw {
 		name = strings.ToLower(name)
-		tmplength[len(name)]++
+		n.length[len(name)]++
 
 		for _, char := range name {
-			if tmpdict[prev] == nil {
-				tmpdict[prev] = make(map[rune]int)
+			if n.dict[prev] == nil {
+				n.dict[prev] = make(map[rune]int)
 			}
 
-			tmpdict[prev][char]++
+			n.dict[prev][char]++
 			prev = char
 		}
 
-		if tmpdict[prev] == nil {
-			tmpdict[prev] = make(map[rune]int)
+		if n.dict[prev] == nil {
+			n.dict[prev] = make(map[rune]int)
 		}
-		tmpdict[prev][StopChar]++
+		n.dict[prev][StopChar]++
 
 		prev = StopChar
 	}
-
-	// char to char probability
-	sum := 0
-	sumchar := make(map[rune]float64)
-
-	for prevchar, nextmap := range tmpdict {
-		sum = 0
-		for _, cnt := range nextmap {
-			sum += cnt
-		}
-
-		sumchar[prevchar] = float64(sum)
-	}
-
-	n.dict = make(map[rune]map[float64]rune)
-	for prevchar, nextmap := range tmpdict {
-		sum = 0
-		for nextchar, cnt := range nextmap {
-			prob := float64(cnt) / sumchar[prevchar]
-
-			if n.dict[prevchar] == nil {
-				n.dict[prevchar] = make(map[float64]rune)
-			}
-
-			n.dict[prevchar][prob] = nextchar
-		}
-	}
-	// TODO: pre-sort nextchar-probability desc
-
-	// name length probability
-	sum = 0
-	for _, cnt := range tmplength {
-		sum += cnt
-	}
-
-	n.length = make(map[float64]int, len(tmplength))
-	for lng, cnt := range tmplength {
-		prob := float64(cnt) / float64(sum)
-		n.length[prob] = lng
-	}
-	// TODO: pre-sort length-probability desc
 
 	return n
 }
@@ -96,7 +56,7 @@ func (n NameGen) GenerateOne() string {
 // GenerateMultiple generates multiple names.
 func (n NameGen) GenerateMultiple(amount int) []string {
 	ret := make([]string, amount)
-	for i := range(ret) {
+	for i := range ret {
 		ret[i] = n.GenerateOne()
 	}
 	
@@ -110,19 +70,37 @@ func (n NameGen) GenerateWithStart(start string) string {
 	
 	prev := rune(start[0])
 	
-	for (len(name) <= 0 && cur != StopChar) {
-		fmt.Printf("prev: [%c]\n", prev)
-		
+	for (cur != StopChar) {
 		if n.dict[prev] == nil {
-			fmt.Printf("char %v not found\n", prev)
 			break
 		}
 		
-		cur = n.dict[prev][/* TODO: insert weighted-random function here */]
-		
+		cur = selectRune(n.dict[prev])
 		name = append(name, cur)
 		prev = cur
 	}
 	
 	return strings.TrimSpace(string(name))
+}
+
+// selectRune chooses a rune based on the weight.
+func selectRune(dict map[rune]int) rune {
+	rand.Seed()
+
+	data 	:= []rune{}
+	weights	:= []float64{}
+	sum 	:= 0.0
+
+	for _, w := range dict {
+		sum += float64(w)
+	}
+
+	for c, w := range dict {
+		data = append(data, c)
+		weights = append(weights, float64(w) / sum)
+	}
+	index := rand.WeightedChoice(weights, sum)
+	result := data[index]
+
+	return result
 }
