@@ -1,3 +1,4 @@
+// Package namegen creates random names based on the probability of characters in a given string.
 package namegen
 
 import (
@@ -5,13 +6,16 @@ import (
 	"strings"
 )
 
+// The rune that is used to separate names.
 const StopChar = rune(32)
 
+// A NameGen creates random names.
 type NameGen struct {
 	dict	map[rune]map[float64]rune	// [previous char][probability]next char
 	length	map[float64]int				// [probability]length
 }
 
+// NewNameGen returns a new NameGen and calculates the probabilities of consecutive characters based on the passed string slice.
 func NewNameGen(raw []string) *NameGen {
 	n := new(NameGen)
 
@@ -84,10 +88,12 @@ func NewNameGen(raw []string) *NameGen {
 	return n
 }
 
+// GenerateOne generates a single name.
 func (n NameGen) GenerateOne() string {
 	return n.GenerateWithStart(string(StopChar))
 }
 
+// GenerateMultiple generates multiple names.
 func (n NameGen) GenerateMultiple(amount int) []string {
 	ret := make([]string, amount)
 	for i := range(ret) {
@@ -97,6 +103,7 @@ func (n NameGen) GenerateMultiple(amount int) []string {
 	return ret
 }
 
+// GenerateWithStart generates a single name with a specified start character.
 func (n NameGen) GenerateWithStart(start string) string {
 	var cur rune
 	var name []rune
