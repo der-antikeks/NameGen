@@ -8,16 +8,15 @@ import (
 	"github.com/der-antikeks/namegen/ssyll"
 )
 
-
 const (
-	StopString = " "	// The string that is used to separate names.
-	Vowels = "aeiou"	// Simple english vowels for syllable splitting, ignore Y as only-sometimes-vowel
+	StopString = " "     // The string that is used to separate names.
+	Vowels     = "aeiou" // Simple english vowels for syllable splitting, ignore Y as only-sometimes-vowel
 )
 
 // A NameGen creates random names.
 type NameGen struct {
-	dict	map[string]map[string]int	// [previous syllable][next syllable]amount
-	length	map[int]int					// [number of syllables]amount
+	dict   map[string]map[string]int // [previous syllable][next syllable]amount
+	length map[int]int               // [number of syllables]amount
 }
 
 // NewNameGen returns a new NameGen and calculates the probabilities of consecutive syllables based on the passed string slice.
@@ -67,7 +66,7 @@ func (n NameGen) GenerateMultiple(amount int) []string {
 	for i := range ret {
 		ret[i] = n.GenerateOne()
 	}
-	
+
 	return ret
 }
 
@@ -75,20 +74,20 @@ func (n NameGen) GenerateMultiple(amount int) []string {
 func (n NameGen) GenerateWithStart(start string) string {
 	var cur string
 	var name []string
-	
+
 	prev := start
 	length := selectInt(n.length)
-	
+
 	for (cur != StopString) && (len(name) <= length) {
 		if n.dict[prev] == nil {
 			break
 		}
-		
+
 		cur = selectString(n.dict[prev])
 		name = append(name, cur)
 		prev = cur
 	}
-	
+
 	return strings.TrimSpace(strings.Join(name, ""))
 }
 
@@ -96,9 +95,9 @@ func (n NameGen) GenerateWithStart(start string) string {
 func selectString(dict map[string]int) string {
 	rand.Seed()
 
-	data 	:= []string{}
-	weights	:= []float64{}
-	sum 	:= 0.0
+	data := []string{}
+	weights := []float64{}
+	sum := 0.0
 
 	for _, w := range dict {
 		sum += float64(w)
@@ -106,7 +105,7 @@ func selectString(dict map[string]int) string {
 
 	for c, w := range dict {
 		data = append(data, c)
-		weights = append(weights, float64(w) / sum)
+		weights = append(weights, float64(w)/sum)
 	}
 	index := rand.WeightedChoice(weights, sum)
 	result := data[index]
@@ -118,9 +117,9 @@ func selectString(dict map[string]int) string {
 func selectInt(dict map[int]int) int {
 	rand.Seed()
 
-	data 	:= []int{}
-	weights	:= []float64{}
-	sum 	:= 0.0
+	data := []int{}
+	weights := []float64{}
+	sum := 0.0
 
 	for _, w := range dict {
 		sum += float64(w)
@@ -128,7 +127,7 @@ func selectInt(dict map[int]int) int {
 
 	for c, w := range dict {
 		data = append(data, c)
-		weights = append(weights, float64(w) / sum)
+		weights = append(weights, float64(w)/sum)
 	}
 	index := rand.WeightedChoice(weights, sum)
 	result := data[index]
