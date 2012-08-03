@@ -77,8 +77,9 @@ func (n NameGen) GenerateWithStart(start string) string {
 	var name []string
 	
 	prev := start
+	length := selectInt(n.length)
 	
-	for (cur != StopString) {
+	for (cur != StopString) && (len(name) <= length) {
 		if n.dict[prev] == nil {
 			break
 		}
@@ -96,6 +97,28 @@ func selectString(dict map[string]int) string {
 	rand.Seed()
 
 	data 	:= []string{}
+	weights	:= []float64{}
+	sum 	:= 0.0
+
+	for _, w := range dict {
+		sum += float64(w)
+	}
+
+	for c, w := range dict {
+		data = append(data, c)
+		weights = append(weights, float64(w) / sum)
+	}
+	index := rand.WeightedChoice(weights, sum)
+	result := data[index]
+
+	return result
+}
+
+// selectInt chooses an int based on the weight.
+func selectInt(dict map[int]int) int {
+	rand.Seed()
+
+	data 	:= []int{}
 	weights	:= []float64{}
 	sum 	:= 0.0
 
