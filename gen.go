@@ -5,44 +5,52 @@ import (
 	"strings"
 
 	"github.com/der-antikeks/namegen/rand"
+	"github.com/der-antikeks/namegen/ssyll"
 )
 
-// The rune that is used to separate names.
-const StopChar = rune(32)
+
+const (
+	StopString = " "	// The string that is used to separate names.
+	Vowels = "aeiou"	// Simple english vowels for syllable splitting, ignore Y as only-sometimes-vowel
+)
 
 // A NameGen creates random names.
 type NameGen struct {
-	dict	map[rune]map[rune]int	// [previous char][next char]amount
-	length	map[int]int				// [length]amount
+	dict	map[string]map[string]int	// [previous syllable][next syllable]amount
+	length	map[int]int					// [number of syllables]amount
 }
 
-// NewNameGen returns a new NameGen and calculates the probabilities of consecutive characters based on the passed string slice.
-func NewNameGen(raw []string) *NameGen {
+// NewNameGen returns a new NameGen and calculates the probabilities of consecutive syllables based on the passed string slice.
+func NewNameGen(names []string) *NameGen {
 	n := new(NameGen)
 
 	n.length = make(map[int]int)
-	n.dict = make(map[rune]map[rune]int)
+	n.dict = make(map[string]map[string]int)
 
-	prev := StopChar
-	for _, name := range raw {
+	var syllables []string
+
+	prev := StopString
+	for _, name := range names {
 		name = strings.ToLower(name)
-		n.length[len(name)]++
+		syllables = ssyll.Divide(name, Vowels)
 
-		for _, char := range name {
+		n.length[len(syllables)]++
+
+		for _, syllable := range syllables {
 			if n.dict[prev] == nil {
-				n.dict[prev] = make(map[rune]int)
+				n.dict[prev] = make(map[string]int)
 			}
 
-			n.dict[prev][char]++
-			prev = char
+			n.dict[prev][syllable]++
+			prev = syllable
 		}
 
 		if n.dict[prev] == nil {
-			n.dict[prev] = make(map[rune]int)
+			n.dict[prev] = make(map[string]int)
 		}
-		n.dict[prev][StopChar]++
+		n.dict[prev][StopString]++
 
-		prev = StopChar
+		prev = StopString
 	}
 
 	return n
@@ -50,7 +58,7 @@ func NewNameGen(raw []string) *NameGen {
 
 // GenerateOne generates a single name.
 func (n NameGen) GenerateOne() string {
-	return n.GenerateWithStart(string(StopChar))
+	return n.GenerateWithStart(string(StopString))
 }
 
 // GenerateMultiple generates multiple names.
@@ -63,31 +71,31 @@ func (n NameGen) GenerateMultiple(amount int) []string {
 	return ret
 }
 
-// GenerateWithStart generates a single name with a specified start character.
+// GenerateWithStart generates a single name with a specified start string.
 func (n NameGen) GenerateWithStart(start string) string {
-	var cur rune
-	var name []rune
+	var cur string
+	var name []string
 	
-	prev := rune(start[0])
+	prev := start
 	
-	for (cur != StopChar) {
+	for (cur != StopString) {
 		if n.dict[prev] == nil {
 			break
 		}
 		
-		cur = selectRune(n.dict[prev])
+		cur = selectString(n.dict[prev])
 		name = append(name, cur)
 		prev = cur
 	}
 	
-	return strings.TrimSpace(string(name))
+	return strings.TrimSpace(strings.Join(name, ""))
 }
 
-// selectRune chooses a rune based on the weight.
-func selectRune(dict map[rune]int) rune {
+// selectString chooses a string based on the weight.
+func selectString(dict map[string]int) string {
 	rand.Seed()
 
-	data 	:= []rune{}
+	data 	:= []string{}
 	weights	:= []float64{}
 	sum 	:= 0.0
 
